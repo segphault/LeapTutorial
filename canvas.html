@@ -1,0 +1,48 @@
+<html>
+  <head>
+    <script src="http://js.leapmotion.com/leap-0.4.3.js"></script>
+  </head>
+  <body>
+    <canvas id="canvas" width="800" height="600"></canvas>
+  </body>
+  <script type="text/javascript">
+    var canvas = document.getElementById("canvas");
+    var ctx = canvas.getContext("2d");
+    
+    Leap.loop({enableGestures: true}, function(frame) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+        frame.gestures.forEach(function(gesture) {
+          if (gesture.type != "swipe") return;
+          console.log(gesture);
+          var start = frame.interactionBox.normalizePoint(gesture.startPosition);
+          var end = frame.interactionBox.normalizePoint(gesture.position);
+
+          var startX = ctx.canvas.width * start[0];
+          var startY = ctx.canvas.width * (1 - start[1]);
+
+          var endX = ctx.canvas.width * end[0];
+          var endY = ctx.canvas.width * (1 - end[1]);
+
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          ctx.lineTo(endX, endY);
+          ctx.stroke();
+        });
+
+        frame.pointables.forEach(function(pointable) {
+          var position = pointable.stabilizedTipPosition;
+          var normalized = frame.interactionBox.normalizePoint(position);
+
+          var x = ctx.canvas.width * normalized[0];
+          var y = ctx.canvas.height * (1 - normalized[1]);
+
+          ctx.fillStyle = pointable.touchZone == "touching" ? "red" : "black";
+
+          ctx.beginPath();
+          ctx.rect(x, y, 20, 20);
+          ctx.fill();
+        });
+    });
+  </script>
+</html>

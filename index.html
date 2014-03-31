@@ -1,0 +1,130 @@
+<html>
+  <head>
+    <script src="assets/pixi.dev.js" type="text/javascript"></script>
+    <script src="http://js.leapmotion.com/leap-0.4.2.js"></script>
+
+    <style type="text/css">
+      #game {
+        margin-left: auto;
+        margin-right: auto;
+
+        width: 800px;
+        height: 600px;
+      }
+    </style>
+
+  </head>
+  <body>
+    <div id="game"></div>
+  </body>
+
+  <script type="text/javascript">
+
+    var stageWidth = 800;
+    var stageHeight = 600;
+
+    // Create the stage and the rendering engine
+    var stage = new PIXI.Stage(0xFFFFFF);
+    var render = new PIXI.autoDetectRenderer(stageWidth, stageHeight);
+
+    document.getElementById("game").appendChild(render.view);
+
+    // Create the moving starfield backdrop
+    var spacebg = PIXI.Texture.fromImage("assets/spacebg.png");
+    var space = new PIXI.TilingSprite(spacebg, stageWidth, stageHeight);
+    stage.addChild(space);
+
+    // Create the rocket sprite
+    var rocket = PIXI.Sprite.fromImage("assets/rocketship.png");
+    stage.addChild(rocket);
+
+    // This variable is used to control the game state.
+    // When rocket hits enemy, this will be set to `true`,
+    // which makes the draw loop halt and display "Game Over"
+    var collided = false;
+
+    // Set the initial value on the timer
+    // More details about timing and game speed below
+    var timer = window.performance.now();
+
+    // Set up the Leap Motion controller loop
+    var options = {frameEventName: "animationFrame"};
+    var controller = Leap.loop(options, function(frame) {
+
+      // We want elements of the game to move at a consistent speed.
+      // If we simply animated stuff inside of the draw loop,
+      // the game speed would change depending on the frame rate.
+      // I use time delta between renders to determine how far
+      // elements in the scene should move in each frame.
+      var now = window.performance.now();
+      var delta = Math.min(now - timer, 100);
+      timer = now;
+
+      // Make the starfield background move
+      space.tilePosition.x -= 0.2 * delta;
+
+      // Check to see if the "Game Over" condition is active
+      if (collided) {
+        // Create and display the "Game Over" caption
+        var caption = new PIXI.Text("Game Over", {
+          font: "50px Helvetica", fill: "red"
+        });
+
+        caption.x = stageWidth / 2 - caption.width / 2;
+        caption.y = stageHeight / 2;
+
+        stage.addChild(caption);
+
+        // Render the frame and call return so that the rest of
+        // the elements of the scene remain static
+        return render.render(stage);
+      }
+
+      // Iterate over each enemy ship on the stage
+      space.children.forEach(function(child) {
+        // Move the enemy ship forward
+        child.x -= 0.2 * delta;
+
+        // Determine if the rocket's center point is within the
+        // enemy ship's boundaries. This is a very simplistic approach.
+        // You could do much smarter collision detection and use the
+        // sprite `hitArea` feature to set more accurate boundaries.
+        // If user hit enemy, change the collided value to end the game
+        if (child.getBounds().contains(rocket.x, rocket.y))
+          collided = true;
+
+        // Remove enemy ships that have gone off the edge of the screen
+        if (child.x < -child.width)
+          space.removeChild(child);
+      });
+
+      // Find the ship that was most recently added to the stage
+      var last = space.children[space.children.length - 1];
+
+      // Add a new ship if there are no ships on the screen or the most
+      // recently added ship is more than 250px from the right edge.
+      // This is how we space out the ships. In a real game, you might
+      // make the 250px space shrink gradually to increase difficulty
+      if (space.children.length == 0 || last.x < (stageWidth - 250)) {
+        var item = PIXI.Sprite.fromImage("assets/enemy.png");
+        item.y = Math.floor((Math.random() * (stageHeight - 100)));
+        item.x = stageWidth;
+        space.addChild(item);
+      }
+
+      if (frame.pointables.length > 0) {
+        // Get the normalized finger position
+        var pos = frame.pointables[0].stabilizedTipPosition;
+        var normPos = frame.interactionBox.normalizePoint(pos, true);
+
+        // Move the rocket to the normalized finger position
+        rocket.x = stageWidth * normPos[0];
+        rocket.y = stageHeight * (1 - normPos[1]);
+      }
+
+      // Render the scene
+      render.render(stage);
+    });
+
+  </script>
+</html>

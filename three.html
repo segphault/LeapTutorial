@@ -1,0 +1,43 @@
+<html>
+  <head>
+    <script src="http://js.leapmotion.com/leap-0.4.2.js"></script>
+    <script src="https://rawgithub.com/mrdoob/three.js/master/build/three.js"></script>
+    <style type="text/css">
+      canvas { width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+  </body>
+  <script type="text/javascript">
+    var renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+
+    var geometry = new THREE.CubeGeometry(1,1,1);
+    var material = new THREE.MeshBasicMaterial({color: 0x00ff00});
+    var shape = new THREE.Mesh(geometry, material);
+
+    scene.add(shape);
+    camera.position.z = 10;
+    
+    Leap.loop({frameEventName: "animationFrame"}, function(frame) {
+      shape.rotation.x += 0.1;
+      shape.rotation.y += 0.1;
+
+      if (frame.pointables.length > 0) {
+        var pos = frame.pointables[0].stabilizedTipPosition;
+        var box = frame.interactionBox;
+
+        shape.position.x = pos[0] / box.size[0] * 10;
+        shape.position.y = pos[1] / box.size[1] * 10;
+        shape.position.z = pos[2] / box.size[2] * 10;
+      }
+
+      renderer.render(scene, camera);
+    });
+  </script>
+</html>
